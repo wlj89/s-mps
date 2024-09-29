@@ -1,5 +1,6 @@
 """
     FCIDUMP generation script
+	lmfao
 """
 import psi4
  
