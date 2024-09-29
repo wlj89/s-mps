@@ -1,0 +1,138 @@
+import sys
+
+def to_molpro_FCIDUMP(file_input):
+    """
+        Unlike in Molpro, Psi4 integrals do not enforce the parity symmetry 
+        That is, [ij|kl] & [kl|ij] are both listed. This script removes such
+        a duplicacy for easier manipulation in C++
+
+        Note: Both molpro and psi4 enforce i>=j and k>=l for [ij|kl] when i!=k 
+
+    """
+    output_name = file_input+".in"
+    
+    idx_l_space = 4
+    val_l_space = 30
+    
+    mk = False
+    
+    buffer_2b = [] 
+    buff_1b = [] 
+    buff_nuc = [] 
+
+    global_dict = {} 
+    
+    key_gen = lambda i,j,k,l: i+" "+j+" "+k+" "+l
+
+    with open(file_input) as f:
+        for line in f:
+            line_temp = line.split()
+            
+            # start integral parsing 
+            if mk==True:
+                i = line_temp[1]
+                j = line_temp[2]
+                k = line_temp[3]
+                l = line_temp[4]
+
+                """
+                    2 1 10 10 ? 
+                """
+                if i!='0' and j!='0' and k!='0' and l!='0':
+                
+                    # duplicate parity term in Psi4's FCIDUMP
+                    if int(k) >= int(i):
+                        if int(k) > int(i):
+                            current_key = key_gen(k,l,i,j)
+                        else:
+                            # j >= l when i==k 
+                            if int(j) < int(l):
+                                current_key = key_gen(i,l,k,j)
+                            else:
+                                current_key = key_gen(i,j,k,l)
+                    else:
+                        current_key = key_gen(i,j,k,l)
+
+                    #print (current_key)
+                    #print ("\n") 
+
+                    if not current_key in global_dict:
+                        
+                        global_dict[current_key] = 0
+                        
+                        line_new = line_temp[0].rjust(val_l_space)
+
+                        if int(k) >= int(i):
+                            if int(k) > int(i):
+                                line_new += (k.rjust(idx_l_space) + l.rjust(idx_l_space))
+                                line_new += (i.rjust(idx_l_space) + j.rjust(idx_l_space))
+                            else:
+                                if int(j) < int(l): 
+                                    line_new +=(k.rjust(idx_l_space) + l.rjust(idx_l_space))
+                                    line_new +=(i.rjust(idx_l_space) + j.rjust(idx_l_space))
+                                else: 
+                                    line_new +=(k.rjust(idx_l_space) + j.rjust(idx_l_space))
+                                    line_new +=(i.rjust(idx_l_space) + l.rjust(idx_l_space))
+
+                        else:
+                            line_new += (i.rjust(idx_l_space) + j.rjust(idx_l_space))
+                            line_new += (k.rjust(idx_l_space) + l.rjust(idx_l_space))
+
+                        buffer_2b.append(line_new)
+
+                if i != '0' and j!='0' and k=='0' and l=='0':
+                    """
+                        nothing need to be done for 1b term 
+                    """
+                    line_new = line_temp[0].rjust(val_l_space) 
+                    line_new += (i.rjust(idx_l_space) + j.rjust(idx_l_space))
+                    line_new += (k.rjust(idx_l_space) + l.rjust(idx_l_space))
+                    
+                    buff_1b.append(line_new)
+
+                if i=='0' and j=='0' and k=='0' and l=='0':
+
+                    line_new = line_temp[0].rjust(val_l_space) 
+                    line_new += (i.rjust(idx_l_space) + j.rjust(idx_l_space))
+                    line_new += (k.rjust(idx_l_space) + l.rjust(idx_l_space))
+
+                    buff_1b.append(line_new)
+  
+            if line_temp[0] == "&END":
+                mk = True
+    
+    #def comp(x):
+    #    return x[-13:]
+    comp = lambda x: x[-13:]
+
+    #buffer_2b.sort(key=comp)
+
+    #for line in buffer_2b:
+    #    print(line)     
+
+    fp = open(output_name,"w") 
+    
+    fp.writelines(str(len(buff_nuc)+len(buffer_2b)+len(buff_1b))+"\n")
+
+    for line in buffer_2b:
+        fp.writelines(line+"\n")
+    
+    for line in buff_1b:
+        fp.writelines(line+"\n")
+
+    for line in buff_nuc:
+        fp.writelines(line+"\n")
+
+    fp.close()
+
+
+def main():
+    filename = sys.argv[1:]
+    #print(filename)
+
+    for file in filename:
+        to_molpro_FCIDUMP(file)
+    
+if __name__ == "__main__":
+    main()
+    #to_molpro_FCIDUMP()
