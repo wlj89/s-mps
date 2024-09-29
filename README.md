@@ -1,4 +1,4 @@
-# QC-DMRG
+# Stochastic MPS for QC
 
 ## Usage
 
