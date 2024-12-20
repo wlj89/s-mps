@@ -13,6 +13,7 @@
 
 using namespace std;
 
+
 unsigned bond_dim;
 unsigned trial_bond_dim; 
 unsigned d;
