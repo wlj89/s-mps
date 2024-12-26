@@ -3,6 +3,7 @@
 #include "solver.hpp"
 #include "sampler.hpp"
 #include <iostream>
+
 #include <complex>
 #include <algorithm>
 #include <string>
@@ -12,7 +13,6 @@
 #include <bits/stdc++.h>
 
 using namespace std;
-
 
 unsigned bond_dim;
 unsigned trial_bond_dim; 
@@ -453,9 +453,7 @@ bool my_comp(pair<double,string> a, pair<double,string> b)
 
 int main(int argc, char* argv[])
 {   
-    /*
-                
-    */
+
     string input_name; 
     
     if (argv[1]==NULL)
@@ -467,7 +465,7 @@ int main(int argc, char* argv[])
     else
     {
         input_name = argv[1];
-        cout << input_name << endl;
+        cout <<"Using input file " << input_name << endl;
     }    
     
     cout <<"***********************************" <<endl; 
@@ -479,7 +477,7 @@ int main(int argc, char* argv[])
     cout <<"***********************************" <<endl; 
     cout <<"WARNING: the following line is intentionally left blank\n\n";
     
-    cout.precision(15);
+    cout.precision(12);
     //Eigen::setNbThreads(1);
     get_paras(input_name); 
     
@@ -598,7 +596,7 @@ int main(int argc, char* argv[])
     {
         /*
             dbg session 
-            implement whatever you want 
+            do whatever you want 
         */
         std::mt19937_64 random_engine(std::chrono::system_clock::now().time_since_epoch().count());
         /*
@@ -613,7 +611,7 @@ int main(int argc, char* argv[])
                                         filename,
                                         dmrg_trial_wf);
         // identifying 1b and 2b 
-        dmrg_solver.H.to_1b_2b();
+        dmrg_solver.H.to_1b_2b(); 
         */
         
         // Aug 4th begins 
