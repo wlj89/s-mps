@@ -13,6 +13,7 @@
 #include <random>
 #include <cmath>
 #include <fstream>
+#include <unordered_set>
 //#include "mpo.hpp"
 
 using namespace std;
@@ -27,13 +28,22 @@ template <typename T> class MPS
         !!! order of pauli matrix !!!
         
         0 1 
-        0 0 ~ this is a creation operator
+        0 0 ~ this is a creation operator/ Spin raising op
 
         0    
         1   ~ spindown / |0> 
         
         1
         0  ~ spinup / |1>
+
+        1 0 
+        0 0 ~ number operator 
+        
+        indexing for on-site matrice is the opposite! 
+            mat_vec[0] ~ spin-up matrices aka |1>  ~ (1,0)^T
+            mat_vec[1] ~ spin-down matrices aka |0> ~ (0,1)^T
+            Especially important for occ number related calculateion
+
     */
     
     typedef Matrix<T,Dynamic,Dynamic> Mat;
@@ -56,11 +66,9 @@ public:
         1. might be more advantageous to use a single block of memeory
             (but how)
         
-        2. Watch out the order 
-            mat_vec[0] ~ spin-up matrices aka |1>
-            mat_vec[1] ~ spin-down matrices aka |0>
+              
     */
-
+    
     // the defualt constructor 
     MPS(){}
     MPS(unsigned bd_val, 
@@ -71,6 +79,38 @@ public:
         initialize(bd_val,site_num_val,d_val);    
     }
     
+    void set_n_i(PauliStr& tgt, int pos)
+    {
+        PauliMat n; 
+        
+        n << 1, 0, 0, 0; 
+
+        tgt.resize(site_num);
+        for (int i=0; i<site_num; i++)
+            if (i==pos)
+                tgt[i] = n;
+            else
+                tgt[i] = PauliMat::Identity();  
+
+             
+    }
+
+    void set_Z_i(PauliStr& tgt, int pos)
+    {
+        PauliMat n; 
+        
+        n << 1, 0, 0, -1; 
+
+        tgt.resize(site_num);
+        for (int i=0; i<site_num; i++)
+            if (i==pos)
+                tgt[i] = n;
+            else
+                tgt[i] = PauliMat::Identity();  
+
+             
+    }
+
     void from_direct_sum(const MPS& phi_1, const MPS& phi_2)
     {
         /*
@@ -181,10 +221,8 @@ public:
     }
 
     void read(string wf_name)
-    {
-        
+    {   
         // some safegaurd mechanism?
-
         const char* u = &wf_name[0];
         FILE *fp =  fopen(u,"r");
         
@@ -355,6 +393,8 @@ public:
         /*
             compute norm of a MPS
             Use inner_product(rhs) 
+
+            return |psi|^2
         */  
         return this->inner_product(*this);
 
@@ -655,6 +695,41 @@ public:
 
         } 
     }
+    
+    void set_occ(unordered_set<int>& occ, double r)
+    {
+        /*
+            guess based RHF's MO occupation number 
+            
+            mat_vec[0] ~ |1> ~ occpuied 
+            mat_vec[1] ~ |0> ~ unoccupied  
+
+            Not a perfect HF determinant but very close 
+            !!! Perfect HF leads to breakdown of Lanczos !!!     
+        
+        */
+
+        for (int site_idx = 0; site_idx < site_num; site_idx ++)
+        {
+
+            unsigned n_row = mat_vec[0][site_idx].rows();
+            unsigned n_col = mat_vec[0][site_idx].cols(); 
+
+            if (occ.find(site_idx) == occ.end())
+            {
+                mat_vec[0][site_idx] = Mat::Constant(n_row, n_col, r);
+                mat_vec[1][site_idx] = Mat::Constant(n_row, n_col, 1);
+            }
+            else 
+            {
+                mat_vec[0][site_idx] = Mat::Constant(n_row, n_col, 1);
+                mat_vec[1][site_idx] = Mat::Constant(n_row, n_col, r);
+            }
+            
+        }
+
+    }
+
     void get_R_mat( unsigned l,
                     const vector<Matrix<int,2,2>>& pauli_str,
                     Mat& R_mat) const
@@ -923,6 +998,42 @@ public:
             }
         }
     }
+
+    double calc_total_spin()
+    {
+        /*
+            Calculate <N> = <N_up> - <N_down>
+            0 2 4 ... spin up 
+            1 3 5 ... spin down
+        */
+        double n_up=0, n_down=0;
+
+        MPS<double> temp; 
+        
+        for(int i=0; i<site_num; i++)
+        {
+            temp.blank_copy(*this);
+
+            PauliStr h; 
+            
+            set_n_i(h,i);
+            //set_Z_i(h,i);
+
+            temp.apply_single_h_inplace(h);
+
+            double val = this->inner_product(temp); 
+            
+            if (i%2==0) 
+                n_up += val;
+            else 
+                n_down += val;  
+
+        }
+        //temp.blank_copy(*this);
+        double sqred_norm = this->inner_product(*this);
+
+        return (n_up + n_down)/sqred_norm; 
+    }   
 };
 
 #endif 
