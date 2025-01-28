@@ -17,7 +17,8 @@ using namespace std;
 unsigned bond_dim;
 unsigned trial_bond_dim; 
 unsigned d;
-unsigned site_num;      
+unsigned site_num;     
+unsigned elec_num; 
 unsigned num_thread_global=1; 
 unsigned krylov_dim=5; 
 unsigned num_restart= 10; 
@@ -47,6 +48,11 @@ void parse(string key, string val)
     {
         filename = val;
         cout <<"using input "<< key  << "=" << filename <<endl ;
+    }
+    else if(key == "elec_num")
+    {
+        elec_num = stoi(val); 
+        cout <<"using input "<< key  << "=" << elec_num <<endl ;  
     }
     else if (key == "dmrg_trial_wf")
     {

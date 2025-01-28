@@ -2,7 +2,7 @@
 
 ## Usage
 
-1. Enter `src/` and compile with `make`. You might need to specify the flag relating to cpu architecture. You also need to install Eigen and passing its path via `-I` flag.
+1. Enter `src/` and compile with `make`. You might need to specify the flag relating to cpu architecture. You also need to install Eigen and passing its path via `-I` flag. It is also important to compile Eigen as single-threaded, which is realized by the macro `EIGEN_DONT_PARALLELIZE`.
 2. Specify the required parameters in **.input**. 
 3. `qc-dmrg my_molecule.input`
 ## Reformatting Integrals

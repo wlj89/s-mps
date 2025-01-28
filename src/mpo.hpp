@@ -84,7 +84,34 @@ public:
         //bond_dim = bond_dim_val;
         initialize(site_num_val,d_val,num_bckt_val,filename,scf_type);
     }   
+
+    void set_N( unsigned site_num_val,
+                unsigned d_val,
+                unsigned num_bckt_val)
+    {
+        /*
+            particale number operator        
+        */
     
+        num_bucket = num_bckt_val;
+        site_num = site_num_val;
+        d = d_val;
+
+        n << 1, 0, 0, 0; 
+
+        for (int i=0; i < site_num; i++)
+        {
+            coeff.push_back(1.0);
+            
+            PauliStr temp;
+            set_identity_str(temp);
+            
+            temp[i] = n ; 
+            
+            h.push_back(temp); 
+        }
+    }
+
     void initialize(unsigned site_num_val,
                     unsigned d_val,
                     unsigned num_bckt_val,  // number of thread to be used 
@@ -97,6 +124,10 @@ public:
         
         /// under the local basis adopted, should be -Z!
         /// very evil 
+
+        /*
+            C^+ = exp(-i * \pi * sum_i N_i) A^+
+        */
         Z << -1, 0, 0, 1;   
 
         A_create << 0, 1, 0, 0;
@@ -212,7 +243,7 @@ public:
 
         while(std::getline(q,temp,delim))
         {
-            num ++;   
+            num ++;  
         }
 
         return num;
@@ -433,7 +464,8 @@ public:
                             int l)
     {
         /*
-            given an intergal w. i j k l, 
+            given an intergal [ij|kl], 
+
             enumerate all symmetric terms and pushback to self.h
             also calculate t_prime for one body term 
             
@@ -1006,7 +1038,7 @@ public:
         /*
             PURGATORY STARTS HERE
             
-            expand symmetric terms based the "clean" FCIDUMP 
+            expand symmetric terms based on the "clean" FCIDUMP
             
             For [ij|kl]:
             if i != k 
@@ -1034,7 +1066,7 @@ public:
             //PauliStr temp; 
             //set_identity_str(temp);  
             
-            // |0>|0>
+            // |0>|0> 
             //return;  
             int i_spin = 2*i - 1; 
             int j_spin = 2*j - 1;  
@@ -1057,7 +1089,7 @@ public:
             j_spin = 2*j - 2;  
             k_spin = 2*k - 2;
             l_spin = 2*l - 2;
-
+            
             //temp = t_prime(2,2);
             enum_sym_term_ijkl(coeff_val, i_spin, j_spin, k_spin, l_spin);
             /*
@@ -1220,6 +1252,7 @@ public:
         /*
             applying H on mixed canonical psi w.r.t the local basis on site l 
             parallelized with openmp, but can be easily rewritten in MPI
+            
             Note
             1. save N matrices and avoid computation. Just a few of possibilities
 
@@ -1249,7 +1282,7 @@ public:
         //auto t1 = std::chrono::system_clock::now(); 
         double t1 = omp_get_wtime();
 
-        #pragma omp parallel for num_threads(num_bucket) schedule(dynamic, 50)
+        #pragma omp parallel for num_threads(num_bucket) schedule(dynamic, 20)
         for (unsigned alpha = 0; alpha < h.size(); alpha ++ )
         {
             /*
@@ -1298,7 +1331,7 @@ public:
         double t2 = omp_get_wtime();
 
         //std::chrono::duration<double> t_elapsed = t2-t1;
-        std::cout << "MPO-MPS multiplication execution time:" << t2-t1 <<endl<<endl;
+        //std::cout << "MPO-MPS multiplication execution time:" << t2-t1 <<endl<<endl;
 
         // reduction of Q matrix 
         Q_final.resize(psi.d);
